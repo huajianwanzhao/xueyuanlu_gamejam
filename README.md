@@ -9,6 +9,17 @@
 
 每次 push 到 `main`，GitHub Actions 会自动把最新版本导出成 Web 版发布到上面这个地址（约 2 分钟出包）。电脑浏览器打开即玩；手机上暂时没有触屏操作，先别指望。
 
+**Windows 桌面版**：[下载 xueyuanlu.exe](https://github.com/huajianwanzhao/xueyuanlu_gamejam/releases/latest/download/xueyuanlu.exe) —— 单文件、免安装，双击就玩（约 104 MB，比网页版稳，帧率和手柄都更好）。
+
+发版就是打个 tag：
+
+```powershell
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+两分钟后 GitHub 自动构建 exe 挂到 [Releases](https://github.com/huajianwanzhao/xueyuanlu_gamejam/releases)。**不用自己装导出模板**（那玩意儿 1 GB，编辑器第一次导出会提示下载）。
+
 ---
 
 ## 一、一分钟上手
