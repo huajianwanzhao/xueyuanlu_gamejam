@@ -1,0 +1,46 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="1_player"]
+[ext_resource type="PackedScene" path="res://scenes/objects/platform.tscn" id="2_platform"]
+[ext_resource type="PackedScene" path="res://scenes/objects/coin.tscn" id="3_coin"]
+[ext_resource type="PackedScene" path="res://scenes/objects/goal.tscn" id="4_goal"]
+
+[node name="Level01" type="Node2D"]
+
+[node name="GroundLeft" parent="." instance=ExtResource("2_platform")]
+position = Vector2(160, 344)
+size = Vector2(320, 32)
+
+[node name="GroundRight" parent="." instance=ExtResource("2_platform")]
+position = Vector2(520, 344)
+size = Vector2(240, 32)
+
+[node name="PlatformA" parent="." instance=ExtResource("2_platform")]
+position = Vector2(140, 262)
+size = Vector2(120, 16)
+
+[node name="PlatformB" parent="." instance=ExtResource("2_platform")]
+position = Vector2(280, 206)
+size = Vector2(100, 16)
+
+[node name="PlatformC" parent="." instance=ExtResource("2_platform")]
+position = Vector2(460, 262)
+size = Vector2(120, 16)
+
+[node name="Coin1" parent="." instance=ExtResource("3_coin")]
+position = Vector2(140, 222)
+
+[node name="Coin2" parent="." instance=ExtResource("3_coin")]
+position = Vector2(280, 166)
+
+[node name="Coin3" parent="." instance=ExtResource("3_coin")]
+position = Vector2(460, 222)
+
+[node name="Coin4" parent="." instance=ExtResource("3_coin")]
+position = Vector2(600, 300)
+
+[node name="Player" parent="." instance=ExtResource("1_player")]
+position = Vector2(40, 300)
+
+[node name="Goal" parent="." instance=ExtResource("4_goal")]
+position = Vector2(610, 304)
