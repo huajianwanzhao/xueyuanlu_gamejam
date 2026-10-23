@@ -5,6 +5,10 @@
 
 **当前状态**：模板骨架已提交，美术/音效素材待接入，玩法方向待定。
 
+**在线试玩**：<https://huajianwanzhao.github.io/xueyuanlu_gamejam/>
+
+每次 push 到 `main`，GitHub Actions 会自动把最新版本导出成 Web 版发布到上面这个地址（约 2 分钟出包）。电脑浏览器打开即玩；手机上暂时没有触屏操作，先别指望。
+
 ---
 
 ## 一、一分钟上手
