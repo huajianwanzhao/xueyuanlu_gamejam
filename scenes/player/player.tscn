@@ -17,3 +17,6 @@ offset_top = -14.0
 offset_right = 8.0
 offset_bottom = 14.0
 color = Color(0.95, 0.66, 0.32, 1)
+
+[node name="Anim" type="AnimatedSprite2D" parent="."]
+visible = false

@@ -45,7 +45,7 @@ func level_complete() -> void:
 		get_tree().change_scene_to_file("res://scenes/win_screen.tscn")
 		return
 	get_tree().paused = false
-	get_tree().reload_current_scene()
+	#get_tree().reload_current_scene()
 
 
 func restart_level() -> void:

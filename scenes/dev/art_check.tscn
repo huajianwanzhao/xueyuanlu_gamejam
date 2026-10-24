@@ -1,0 +1,31 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/dev/art_check.gd" id="1_dev"]
+
+[node name="ArtCheck" type="Node2D"]
+script = ExtResource("1_dev")
+
+[node name="Real" type="Sprite2D" parent="."]
+position = Vector2(110, 306)
+visible = false
+
+[node name="Zoom" type="Sprite2D" parent="."]
+position = Vector2(470, 180)
+scale = Vector2(4, 4)
+
+[node name="Title" type="Label" parent="."]
+offset_left = 12.0
+offset_top = 6.0
+offset_right = 620.0
+offset_bottom = 26.0
+theme_override_font_sizes/font_size = 12
+text = "美术比例检查：Real = 真实大小（1:1）　Zoom = 同一张图放大 4 倍"
+
+[node name="Hint" type="Label" parent="."]
+offset_left = 12.0
+offset_top = 26.0
+offset_right = 620.0
+offset_bottom = 48.0
+theme_override_colors/font_color = Color(0.85, 0.72, 0.42, 1)
+theme_override_font_sizes/font_size = 11
+text = "把 PNG 拖到 Real / Zoom 两个节点的 Texture 上。看不清 = 尺寸不对，不是画得不够细。"
