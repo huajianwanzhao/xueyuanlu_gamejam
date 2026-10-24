@@ -2,32 +2,43 @@ extends CharacterBody2D
 ## 玩家：左右移动 + 跳跃（含可变跳跃高度）+ 掉落死亡。
 ## 手感参数全在 Inspector 里改，不用碰代码。
 ##
-## 外观两种状态，自动切换：
-##   1) 没做美术 -> 用 ColorRect 纯色块占位（默认）
-##   2) 美术做完 -> 把 SpriteFrames 存到 FRAMES_PATH，自动改用动画，代码一行不用改
+## 外观三级自动降级，美术换图时一行代码都不用改：
+##   1) 有 player_frames.tres  -> 逐帧动画
+##   2) 有 player_idle.png     -> 单张静态图，自动缩放到 32x56
+##   3) 都没有                  -> 纯色块占位（默认）
+##
+## 不管用哪一级，跳跃/落地都有程序做的挤压拉伸（Inspector 里可关）。
 
 signal died
 
-## 有帧动画就自动用；没有就继续用纯色块
 const FRAMES_PATH: String = "res://assets/sprites/player/player_frames.tres"
-## 这些动画名要和 SpriteFrames 里的一致；缺哪个就跳过哪个
+const SPRITE_PATH: String = "res://assets/sprites/player/player_idle.png"
 const ANIM_IDLE: StringName = &"idle"
 const ANIM_RUN: StringName = &"run"
 const ANIM_JUMP: StringName = &"jump"
 const ANIM_DIE: StringName = &"die"
+## 碰撞盒尺寸，静态图按这个高度自动缩放
+const BODY_SIZE: Vector2 = Vector2(32, 56)
 
 @export_group("手感")
-@export var speed: float = 190.0
-@export var jump_force: float = 560.0
-@export var gravity: float = 1500.0
-@export var max_fall_speed: float = 900.0
+@export var speed: float = 380.0
+@export var jump_force: float = 1120.0
+@export var gravity: float = 3000.0
+@export var max_fall_speed: float = 1800.0
 ## 掉到这个 y 以下就算死（世界坐标）
-@export var death_y: float = 460.0
+@export var death_y: float = 920.0
+
+@export_group("动效")
+## 跳跃/落地挤压拉伸的强度，0 = 完全关掉
+@export_range(0.0, 1.0) var squash_strength: float = 0.22
 
 var _dead: bool = false
+var _squash_tween: Tween
 
-@onready var _visual: ColorRect = $Visual
-@onready var _anim: AnimatedSprite2D = $Anim
+@onready var _visual_root: Node2D = $VisualRoot
+@onready var _visual: ColorRect = $VisualRoot/Visual
+@onready var _sprite: Sprite2D = $VisualRoot/Sprite
+@onready var _anim: AnimatedSprite2D = $VisualRoot/Anim
 
 
 func _ready() -> void:
@@ -38,6 +49,8 @@ func _physics_process(delta: float) -> void:
 	if _dead:
 		return
 
+	var was_on_floor: bool = is_on_floor()
+
 	if not is_on_floor():
 		velocity.y = minf(velocity.y + gravity * delta, max_fall_speed)
 
@@ -47,11 +60,15 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed("jump") and is_on_floor():
 		velocity.y = -jump_force
 		AudioManager.play_sfx("jump")
+		_squash(Vector2(0.82, 1.18))
 	# 松开跳跃键立刻减速 -> 短按小跳、长按大跳
 	if Input.is_action_just_released("jump") and velocity.y < 0.0:
 		velocity.y *= 0.45
 
 	move_and_slide()
+
+	if not was_on_floor and is_on_floor():
+		_squash(Vector2(1.2, 0.8))
 
 	if global_position.y > death_y:
 		_die()
@@ -63,18 +80,38 @@ func _physics_process(delta: float) -> void:
 # ---------- 外观 ----------
 
 func _setup_visual() -> void:
-	if not ResourceLoader.exists(FRAMES_PATH):
-		return
-	var frames: SpriteFrames = load(FRAMES_PATH) as SpriteFrames
-	if frames == null or frames.get_animation_names().is_empty():
-		return
-	_anim.sprite_frames = frames
-	_anim.visible = true
-	_visual.visible = false
-	_play(ANIM_IDLE)
+	if ResourceLoader.exists(FRAMES_PATH):
+		var frames: SpriteFrames = load(FRAMES_PATH) as SpriteFrames
+		if frames != null and not frames.get_animation_names().is_empty():
+			_anim.sprite_frames = frames
+			_show_only(_anim)
+			_play(ANIM_IDLE)
+			return
+
+	if ResourceLoader.exists(SPRITE_PATH):
+		var tex: Texture2D = load(SPRITE_PATH) as Texture2D
+		if tex != null and tex.get_height() > 0:
+			_sprite.texture = tex
+			var s: float = BODY_SIZE.y / float(tex.get_height())
+			_sprite.scale = Vector2(s, s)
+			_sprite.flip_h = false
+			_show_only(_sprite)
+			return
+
+
+func _show_only(node: Node) -> void:
+	_visual.visible = node == _visual
+	_sprite.visible = node == _sprite
+	_anim.visible = node == _anim
 
 
 func _update_anim(direction: float) -> void:
+	if _sprite.visible:
+		_sprite.flip_h = direction < 0.0
+		# 没有跑步动画时，用轻微倾斜装作在动
+		_sprite.rotation = deg_to_rad(-4.0) * signf(direction) if is_on_floor() and absf(direction) > 0.1 else 0.0
+		return
+
 	if not _anim.visible:
 		return
 	_anim.flip_h = direction < 0.0
@@ -93,6 +130,18 @@ func _play(anim: StringName) -> void:
 	if _anim.animation == anim and _anim.is_playing():
 		return
 	_anim.play(anim)
+
+
+## 挤压拉伸：只动外观，不动碰撞盒
+func _squash(target: Vector2) -> void:
+	if squash_strength <= 0.0:
+		return
+	if _squash_tween != null:
+		_squash_tween.kill()
+	var t: Vector2 = Vector2(lerpf(1.0, target.x, squash_strength), lerpf(1.0, target.y, squash_strength))
+	_squash_tween = create_tween()
+	_squash_tween.tween_property(_visual_root, "scale", t, 0.06)
+	_squash_tween.tween_property(_visual_root, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 
 func _die() -> void:

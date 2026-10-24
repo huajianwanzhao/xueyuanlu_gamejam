@@ -6,4 +6,4 @@ subpixel_positioning = 1
 
 [resource]
 default_font = SubResource("SystemFont_cjk")
-default_font_size = 18
+default_font_size = 36

@@ -5,7 +5,7 @@ extends StaticBody2D
 
 @export var size: Vector2 = Vector2(96, 16):
 	set(value):
-		size = Vector2(maxf(value.x, 8.0), maxf(value.y, 8.0))
+		size = Vector2(maxf(value.x, 16.0), maxf(value.y, 16.0))
 		_apply_size()
 
 

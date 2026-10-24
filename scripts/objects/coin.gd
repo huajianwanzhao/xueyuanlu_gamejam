@@ -2,7 +2,7 @@ extends Area2D
 ## 金币：玩家碰到就加分、播声音、消失。
 
 @export var value: int = 1
-@export var bob_height: float = 4.0
+@export var bob_height: float = 8.0
 
 
 func _ready() -> void:

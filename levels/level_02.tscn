@@ -8,50 +8,50 @@
 [node name="Level02" type="Node2D"]
 
 [node name="GroundLeft" parent="." instance=ExtResource("2_platform")]
-position = Vector2(100, 344)
-size = Vector2(200, 32)
+position = Vector2(200, 688)
+size = Vector2(400, 64)
 
 [node name="SteppingStone" parent="." instance=ExtResource("2_platform")]
-position = Vector2(280, 330)
-size = Vector2(60, 16)
+position = Vector2(560, 660)
+size = Vector2(120, 32)
 
 [node name="GroundRight" parent="." instance=ExtResource("2_platform")]
-position = Vector2(500, 344)
-size = Vector2(280, 32)
+position = Vector2(1000, 688)
+size = Vector2(560, 64)
 
 [node name="PlatformA" parent="." instance=ExtResource("2_platform")]
-position = Vector2(140, 250)
-size = Vector2(100, 16)
+position = Vector2(280, 500)
+size = Vector2(200, 32)
 
 [node name="PlatformB" parent="." instance=ExtResource("2_platform")]
-position = Vector2(300, 200)
-size = Vector2(90, 16)
+position = Vector2(600, 400)
+size = Vector2(180, 32)
 
 [node name="PlatformC" parent="." instance=ExtResource("2_platform")]
-position = Vector2(470, 250)
-size = Vector2(100, 16)
+position = Vector2(940, 500)
+size = Vector2(200, 32)
 
 [node name="PlatformD" parent="." instance=ExtResource("2_platform")]
-position = Vector2(555, 160)
-size = Vector2(90, 16)
+position = Vector2(1110, 320)
+size = Vector2(180, 32)
 
 [node name="Coin1" parent="." instance=ExtResource("3_coin")]
-position = Vector2(140, 205)
+position = Vector2(280, 410)
 
 [node name="Coin2" parent="." instance=ExtResource("3_coin")]
-position = Vector2(300, 155)
+position = Vector2(600, 310)
 
 [node name="Coin3" parent="." instance=ExtResource("3_coin")]
-position = Vector2(470, 205)
+position = Vector2(940, 410)
 
 [node name="Coin4" parent="." instance=ExtResource("3_coin")]
-position = Vector2(280, 285)
+position = Vector2(560, 570)
 
 [node name="Coin5" parent="." instance=ExtResource("3_coin")]
-position = Vector2(620, 300)
+position = Vector2(1240, 600)
 
 [node name="Player" parent="." instance=ExtResource("1_player")]
-position = Vector2(36, 300)
+position = Vector2(72, 600)
 
 [node name="Goal" parent="." instance=ExtResource("4_goal")]
-position = Vector2(555, 128)
+position = Vector2(1110, 256)
