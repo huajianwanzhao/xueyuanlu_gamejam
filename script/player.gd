@@ -12,8 +12,9 @@ var current_state: State = State.GHOST
 @export var switch_cooldown: float = 1.0 
 @export var overlap_launch_speed: float = 2600.0 # 实体化瞬间把重叠敌人弹飞的速度，要「非常大」
 @export var overlap_impact_damage: float = 30.0 # 每次实体化冲击额外扣的血
-@export var arrow_length: float = 170.0 # 弹飞方向箭头的长度
-@export var arrow_color: Color = Color(0.4, 1.0, 0.9, 1.0) # 箭头颜色
+@export var arrow_length: float = 170.0 # 弹飞瞬间那根箭头的长度
+@export var arrow_color: Color = Color(0.4, 1.0, 0.9, 1.0) # 弹飞瞬间那根箭头的颜色
+@export var aim_range: float = 900.0 # 幽灵态预览箭头最多指多远（超过这个距离就不指示了）
 
 @export_group("受击")
 @export var hit_lockout: float = 1.5 # 被敌人子弹打中后，多久不能再出杆
@@ -21,8 +22,11 @@ var can_switch: bool = true
 var cooldown_timer: float = 0.0
 var current_attack_id: int = 0 
 
-# 弹飞方向指示箭头（纯绘制节点，见 script/launch_arrow.gd）
+# 弹飞瞬间的一次性箭头（script/launch_arrow.gd）
 const ARROW_SCRIPT := preload("res://script/launch_arrow.gd")
+# 幽灵态常驻的「弹飞方向预览」箭头（script/aim_arrow.gd）
+const AIM_ARROW_SCRIPT := preload("res://script/aim_arrow.gd")
+var aim_arrow: Node2D = null
 
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 
@@ -42,6 +46,8 @@ func _physics_process(delta: float) -> void:
 		velocity = input_dir * real_speed
 	
 	move_and_slide()
+
+	_update_aim_preview()
 
 	if Input.is_action_just_pressed("switch_state"):
 		_try_switch_state()
@@ -78,6 +84,81 @@ func _enter_real_state() -> void:
 	await get_tree().create_timer(0.15).timeout
 	if current_state == State.REAL:
 		collision_shape.set_deferred("disabled", false)
+
+
+# ================= 幽灵态：弹飞方向预览 =================
+# 幽灵态一直画一根箭头指向最近的敌人：贴上去（两圆重叠）就变亮变粗，
+# 意思是「现在点左键，它就会沿这根箭头的方向飞出去」。
+func _update_aim_preview() -> void:
+	_ensure_aim_arrow()
+	if aim_arrow == null:
+		return
+	if current_state != State.GHOST:
+		aim_arrow.visible = false
+		return
+
+	var target: Node2D = null
+	var locked: bool = false
+	var overlaps := _find_overlapping_enemies()
+	if not overlaps.is_empty():
+		target = _nearest_of(overlaps)
+		locked = true
+	else:
+		target = _nearest_enemy(aim_range)
+
+	if target == null:
+		aim_arrow.visible = false
+		return
+
+	var to_target: Vector2 = target.global_position - global_position
+	var dist: float = to_target.length()
+	if dist < 0.001:
+		to_target = Vector2.RIGHT
+
+	aim_arrow.global_position = global_position
+	aim_arrow.rotation = to_target.angle()
+	aim_arrow.locked = locked
+	# 没贴上人：箭头停在敌人前面一点，不挡住它。
+	# 已经贴上了：箭头穿过去、射到敌人外侧，这样才看得出「它会朝哪飞」。
+	if locked:
+		aim_arrow.aim_length = clampf(dist + 120.0, 160.0, 420.0)
+	else:
+		aim_arrow.aim_length = clampf(dist - 55.0, 80.0, 220.0)
+	aim_arrow.visible = true
+
+
+func _ensure_aim_arrow() -> void:
+	if aim_arrow != null and is_instance_valid(aim_arrow) and aim_arrow.is_inside_tree():
+		return
+	var host: Node = get_tree().current_scene
+	if host == null:
+		return
+	aim_arrow = AIM_ARROW_SCRIPT.new()
+	host.add_child(aim_arrow)
+
+
+func _nearest_enemy(max_dist: float) -> Node2D:
+	var best: Node2D = null
+	var best_dist: float = max_dist
+	for e in get_tree().root.find_children("*", "Enemy", true, false):
+		if not (e is Enemy) or e.current_state == e.State.DEAD:
+			continue
+		var d: float = global_position.distance_to(e.global_position)
+		if d < best_dist:
+			best_dist = d
+			best = e
+	return best
+
+
+func _nearest_of(list: Array) -> Node2D:
+	var best: Node2D = null
+	var best_dist: float = INF
+	for e in list:
+		var d: float = global_position.distance_to(e.global_position)
+		if d < best_dist:
+			best_dist = d
+			best = e
+	return best
 
 
 # ================= 核心：实体化冲击 =================
