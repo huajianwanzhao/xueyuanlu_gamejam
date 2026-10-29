@@ -1,0 +1,27 @@
+[gd_scene format=3 uid="uid://daw61onyah6o1"]
+
+[ext_resource type="PackedScene" uid="uid://l223k0nuf2s5" path="res://player.tscn" id="1_fj7yv"]
+[ext_resource type="PackedScene" uid="uid://cs8ernr6qvfbe" path="res://enemy.tscn" id="2_tlwt5"]
+[ext_resource type="PackedScene" uid="uid://rsqu2k7yybp5" path="res://wall.tscn" id="3_tlwt5"]
+
+[node name="world" type="Node2D" unique_id=925776849]
+
+[node name="player" parent="." unique_id=350405252 instance=ExtResource("1_fj7yv")]
+position = Vector2(279, 120)
+
+[node name="CharacterBody2D" parent="." unique_id=883022662 groups=["Enemy"] instance=ExtResource("2_tlwt5")]
+position = Vector2(861, 82)
+
+[node name="CharacterBody2D2" parent="." unique_id=1190063623 groups=["Enemy"] instance=ExtResource("2_tlwt5")]
+position = Vector2(1048, 519)
+
+[node name="CharacterBody2D3" parent="." unique_id=1553964840 groups=["Enemy"] instance=ExtResource("2_tlwt5")]
+position = Vector2(744, 276)
+
+[node name="CharacterBody2D4" parent="." unique_id=1322247866 groups=["Enemy"] instance=ExtResource("2_tlwt5")]
+position = Vector2(555, 571)
+
+[node name="StaticBody2D" parent="." unique_id=1224677045 instance=ExtResource("3_tlwt5")]
+position = Vector2(1254, 163)
+rotation = 1.5871437
+scale = Vector2(5.9656715, -1.4849094)
