@@ -20,6 +20,7 @@ var current_health: float = 100.0
 @export var launch_damage: float = 20.0 # 被弹飞时立刻扣的血
 @export var corpse_damage_factor: float = 0.12 # 尸体砸人的伤害系数（也按法向相对速度算）
 @export var stop_speed: float = 150.0 # 速度低于这个就当球停住了，结束飞行状态（真实台球也会被滚动摩擦停下）
+@export var e:float = 0.7
 
 @export_group("射击")
 @export var can_shoot: bool = true # 这个敌人会不会开枪
@@ -42,7 +43,10 @@ var shoot_cooldown_timer: float = 0.0
 var aim_target: Node2D = null
 var aim_line: Line2D = null
 
+var player:Node
+
 func _ready() -> void:
+	player = get_tree().get_first_node_in_group("Player")
 	current_health = max_health
 	original_color = modulate
 	
@@ -79,7 +83,6 @@ func _physics_process(delta: float) -> void:
 
 
 func _process_normal(delta: float) -> void:
-	var player = get_tree().get_first_node_in_group("Player")
 	if player and player.current_state == player.State.REAL:
 		var dir = (player.global_position - global_position).normalized()
 		velocity = dir * speed
@@ -166,9 +169,8 @@ func _process_bullet(delta: float) -> void:
 	var space_state = get_world_2d().direct_space_state
 	var exclude_rids: Array[RID] = [get_rid()]
 	# 玩家不挡飞行中的敌人：出杆瞬间子弹就贴着玩家，不排除会卡在玩家身体里原地不动
-	var player_node = get_tree().get_first_node_in_group("Player")
-	if player_node is CollisionObject2D:
-		exclude_rids.append(player_node.get_rid())
+	if player is CollisionObject2D:
+		exclude_rids.append(player.get_rid())
 	
 	#【核心修复】不再用射线找敌人，改用和自身等大的圆做重叠查询：
 	# 敌人之间本来就贴得很近，射线从贴脸的敌人身体内部出发会漏掉它，
