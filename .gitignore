@@ -1,9 +1,14 @@
-# Godot 4 缓存与导入产物（不要提交）
+# Godot 4+ specific ignores
 .godot/
-# 导出产物
+/android/
+
+# 导出产物：CI 每次现导，不进仓库
 build/
 export/
-# 系统文件
+
+# 系统 / 编辑器垃圾
 .DS_Store
 Thumbs.db
+desktop.ini
 *.tmp
+*.log

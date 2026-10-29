@@ -1,12 +1,22 @@
-# 归一化换行符：仓库内统一 LF，避免 Windows/Mac 混编时整个文件被标成改动
 * text=auto eol=lf
 
-# 二进制文件，禁止任何换行符转换
+# 文本：统一 LF，避免队友 Windows 上写 CRLF 造成整文件 diff
+*.gd text eol=lf
+*.tscn text eol=lf
+*.tres text eol=lf
+*.godot text eol=lf
+*.cfg text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.svg text eol=lf
+
+# 二进制：绝不让 git 碰行尾（碰了贴图/音频就废了）
 *.png binary
 *.jpg binary
 *.jpeg binary
 *.webp binary
-*.svg text
+*.tga binary
+*.exr binary
 *.wav binary
 *.ogg binary
 *.mp3 binary

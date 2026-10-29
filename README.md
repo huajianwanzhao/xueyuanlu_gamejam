@@ -1,201 +1,76 @@
-# 学院路 Game Jam · 协作仓库
+# 学院路 GameJam · 弹射清版
 
-> 一个**能直接跑**的 Godot 4.7 平台跳跃骨架：主菜单 → 两关 → 暂停 → 通关结算，全流程可玩、可导出。
-> 骨架先跑着，玩法边做边换。
+一个「幽灵状态瞄准 → 出杆瞬移 → 弹飞敌人 → 连锁碰撞得分」的 2D 弹射清版原型。
+当前是**可玩 MVP**：一张场地、4 个敌人、1 面墙，没有 UI、没有胜负判定、没有美术。
 
-**当前状态**：模板骨架已提交，美术/音效素材待接入，玩法方向待定。
+## 在线试玩（网页，随时最新）
 
-**在线试玩**：<https://huajianwanzhao.github.io/xueyuanlu_gamejam/>
+https://huajianwanzhao.github.io/xueyuanlu_gamejam/
 
-每次 push 到 `main`，GitHub Actions 会自动把最新版本导出成 Web 版发布到上面这个地址（约 2 分钟出包）。电脑浏览器打开即玩；手机上暂时没有触屏操作，先别指望。
+每次 push 到 main，GitHub Actions 大约 2 分钟重新导出网页版并部署，刷新页面即最新构建。
 
-**Windows 桌面版**：[下载 xueyuanlu.exe](https://github.com/huajianwanzhao/xueyuanlu_gamejam/releases/latest/download/xueyuanlu.exe) —— 单文件、免安装，双击就玩（约 104 MB，比网页版稳，帧率和手柄都更好）。
+## 操作
 
-发版就是打个 tag：
+| 操作 | 按键 |
+| --- | --- |
+| 移动 | 方向键 |
+| 出杆 / 状态切换 | 鼠标左键（朝鼠标方向） |
 
-```powershell
-git tag v0.2.0
-git push origin v0.2.0
-```
+开局是**幽灵态**：半透明、能穿墙、跑得快（700），但打不到人。
+左键朝鼠标方向「出杆」→ 瞬间移动到落点，落点附近（400px 内、离鼠标最近）的敌人会被弹飞；
+落点后变成**实体态**：不透明、会被敌人追、速度慢（500），冷却 1 秒，0.15 秒无敌帧。
+实体态再按左键 → 变回幽灵态。节奏是「幽灵态找角度 → 出杆 → 实体态躲 1 秒 → 再出杆」。
 
-两分钟后 GitHub 自动构建 exe 挂到 [Releases](https://github.com/huajianwanzhao/xueyuanlu_gamejam/releases)。**不用自己装导出模板**（那玩意儿 1 GB，编辑器第一次导出会提示下载）。
+## 伤害规则
 
----
+| 事件 | 伤害 |
+| --- | --- |
+| 被出杆直接弹飞 | 固定 50 |
+| 被飞行中的敌人撞到 | 撞击者速度 × 0.2 |
+| 自己撞墙 | 自己速度 × 0.2，并反弹 |
+| 被尸体滑行砸到 | 尸体速度 × 0.15（需 > 10） |
 
-## 一、一分钟上手
+敌人 100 血。子弹撞到别的敌人时把 85% 速度传给它（连锁），自己减速到 60% 但**不反弹**，
+所以一次出杆能像打台球一样串起一串敌人。同一次攻击的子弹互不伤害，避免自打自穿。
 
-| 步骤 | 做什么 |
-|---|---|
-| 1 | 装 **Godot 4.7.2**（版本必须一致，4.6 打不开、4.8 可能改格式） |
-| 2 | `git clone https://github.com/huajianwanzhao/xueyuanlu_gamejam.git` |
-| 3 | 打开 Godot → **导入** → 选 clone 下来的那个文件夹 → 打开 |
-| 4 | 按 **F5** 跑起来 |
+## 目录
 
-操作：`A/D` 或 `←/→` 移动，`空格` 跳跃，`Esc` 暂停，`R` 重开本关。
+    项目根目录
+    ├─ project.godot        项目设置（渲染器 = gl_compatibility，网页版必需）
+    ├─ export_presets.cfg   Web + Windows 两个导出预设（CI 靠它出包）
+    ├─ world.tscn           主场景：玩家 + 4 个敌人 + 1 面墙
+    ├─ player.tscn/.gd      玩家：幽灵/实体状态机、出杆、路径扫掠、弹射
+    ├─ enemy.tscn/.gd       敌人：NORMAL/STUNNED/BULLET/DEAD 四态、连锁碰撞、尸体滑行
+    ├─ wall.tscn            墙（RectangleShape2D 200×10）
+    ├─ 游戏结构.md          实现细节文档，看代码前先看它
+    └─ .github/workflows/   推 main 出网页、发 tag 出 exe
 
-> **不要点 GitHub 上的 "Download ZIP"。** ZIP 里没有 git，你改的东西传不回来，最后只能靠群里发文件，等着互相覆盖。
->
-> 调试技巧：主菜单按数字键 `1` `2` 直接进对应关卡，不用每次从头玩。
+## 三个人各自改哪里
 
----
+- **策划**：改 `world.tscn`（敌人摆位、加墙、加敌人，复制节点即可）、`player.tscn` 里的 `ghost_speed`/`real_speed`、`enemy.tscn` 里的 `max_health`/`speed`。都是检查器里能拖的数值，不用碰代码。
+- **美术**：把 `player.tscn` / `enemy.tscn` 里 Sprite2D 的 `icon.svg` 换成贴图；贴图放 `art/`（自己建目录）。
+- **程序**：`player.gd`、`enemy.gd`。
 
-## 二、谁负责什么
+## 协作规矩
 
-| 路径 | 内容 | 主要负责 | 其他人 |
-|---|---|---|---|
-| `levels/level_*.tscn` | **关卡内容**（平台、金币、终点、出生点） | 策划 | 只读 |
-| `assets/sprites/`、`assets/audio/` | 图片、音效、音乐、字体 | 美术 | 只读 |
-| `scenes/`、`scripts/` | 场景结构与游戏逻辑 | 程序 | 只读 |
-| `project.godot`、`export_presets.cfg` | 项目设置、导出配置 | 程序 | **别碰** |
-| `scenes/dev/art_check.tscn` | 美术尺寸验收工具（F6 运行） | 程序 | 只读 |
-| `docs/` | 策划/美术/流程文档 | 全队 | 可改 |
+- 动手前先 `git pull --rebase`。
+- 提交前缀：`feat:` `fix:` `level:` `art:` `docs:`。
+- 只改 .tscn 里的数值基本不会冲突；**同时改 project.godot / export_presets.cfg / 同一个 .tscn 容易打架**，要改先说一声。
+- `.godot/`、`build/` 已经在 .gitignore 里，别提交；`*.import` 和 `*.gd.uid` **必须**提交，少了会丢贴图引用。
+- 文档、策划案、数值表放腾讯文档；能进游戏包的东西才进 Git。
 
-**边界就是省时间**：策划只改 `levels/`，美术只往 `assets/` 放文件，两个人永远不会冲突；程序改代码时也不会被关卡改动干扰。
+## 本地跑
 
----
+双击 `project.godot` 用 Godot 4.7 打开，F5 运行。
 
-## 三、协作规则（这部分最重要）
+## 自动出包
 
-### 1. 动手前先拉
+- push 到 `main` → 网页版自动部署（Pages）。
+- 打 tag → 自动出 Windows exe 并挂到 Release：先 `git tag v0.2.0` 再 `git push origin v0.2.0`。
 
-```powershell
-git pull --rebase
-```
+## 已知待办
 
-用 `--rebase` 而不是默认 merge，历史才不会变成一堆 "Merge branch"。
-
-### 2. 小改动直接推 main，大改动开分支
-
-团队只有 4 个人，正常情况直接 `git push` 到 `main` 就行。**只有要动下面「高危文件」时**才开分支：
-
-```powershell
-git switch -c feat/double-jump
-# 改完
-git push -u origin feat/double-jump
-```
-
-**`main` 必须随时是可运行的**——任何时候 pull 下来按 F5 都得能玩，因为出包、给评审看都从这里来。
-
-### 3. 提交信息写前缀
-
-```text
-feat: 加二段跳
-fix: 掉坑重开没重置金币
-level: 第三关（加了尖刺段）
-art: 玩家跑步 4 帧
-docs: 更新美术规格
-```
-
-一眼能看出谁动了什么，出事了好 revert。
-
-### 4. 高危文件：改之前群里喊一声
-
-| 文件 | 为什么会撞 |
-|---|---|
-| `scenes/game.tscn` | 所有人都要往里挂节点 |
-| `project.godot` | 输入映射、窗口尺寸、自动加载 |
-| `ui/theme.tres` | 全局字体 |
-| `scripts/autoload/game_manager.gd` | 全局状态，加关卡要改 `LEVELS` |
-| `export_presets.cfg` | 导出配置 |
-
-规则：**改完立刻 push，别攒着**。攒三小时再推 = 三个人同时改同一行。
-
-### 5. 不要在 Godot 里「另存为覆盖」
-
-两个人同时开着编辑器改同一个 `.tscn`，后保存的会把先保存的整个覆盖掉，**没有提示**。改之前先 pull，改完立刻推。
-
-### 6. 绝对不要提交
-
-- `.godot/` —— 引擎缓存，每台机器都不一样（已在 `.gitignore`，不要 `git add -f` 强塞）
-- `build/`、`export/` —— 导出产物
-- `.psd` / `.ai` / `.aseprite` / `.flp` 等**源工程文件** → 放网盘，只提交导出的 png / wav / ogg
-- 任何没授权的素材（网上扒的音效、商用字体）
-
-**判据只有一条：能进游戏包的东西进 Git，进不了包的东西不进。** 脑暴记录、参考图、psd 源文件、会议结论——这些进共享文档或网盘；等它们变成「要玩的关卡 / 要用的 png / 要跑的逻辑」，才落到仓库里。
-
-### 7. 冲突了别硬刚
-
-`.tscn` 是文本格式，冲突时差异长得像乱码，**手改基本必翻车**。正确做法：
-
-```powershell
-git checkout --ours   levels/level_03.tscn   # 保我这版
-git checkout --theirs levels/level_03.tscn   # 保对方那版
-```
-
-保一边，另一边让对方花 30 秒重做。别在编辑器里对着 `<<<<<<<` 挣扎。
-
----
-
-## 四、策划：只碰 `levels/`
-
-完整图文步骤见 [`docs/04_策划摆关卡指南.md`](docs/04_策划摆关卡指南.md)，核心三条：
-
-1. 从 `scenes/objects/` 把 `platform.tscn`、`coin.tscn`、`goal.tscn` **拖进画布**就是关卡内容。
-2. 选中后在右侧检查器改 `Position` 和 `size`，碰撞体自动跟着变。
-3. 改完按 **F5 自己玩一遍**再提交——摆歪的平台在编辑器里看不出来。
-
-**加新关卡**：复制 `level_01.tscn` → 改名 `level_03.tscn` → 找程序在 `scripts/autoload/game_manager.gd` 的 `LEVELS` 数组里加一行（这行归程序改，别自己动）。
-
----
-
-## 五、美术：只往 `assets/` 放文件
-
-**规格、尺寸、命名**全在 [`docs/03_美术素材规格.md`](docs/03_美术素材规格.md)，开工前先看那张表。
-
-```text
-assets/sprites/player/idle_01.png
-assets/sprites/objects/coin.png
-assets/sprites/tiles/ground.png
-assets/audio/sfx/coin.wav
-assets/audio/music/bgm.ogg
-assets/fonts/NotoSansSC-Regular.ttf
-```
-
-- 全小写、下划线、不要中文名、不要空格——**代码里就是按文件名找的**。
-- 交付节奏：**尺寸与动作清单确认**（D3 前，只用回话不用画）→ 首版正式图（D6 前）→ 全部替换（D10 前）→ 只修瑕疵（D13 前）。
-- **不用交占位图**：程序直接用纯色块占位，美术省下的这三天拿去做风格测试更值。
-- 提交时只提交**成品图 / 音频**。源文件（psd、aseprite）别进仓库，仓库会被撑爆，clone 一次要等十分钟。
-
----
-
-## 六、程序
-
-- `scenes/` 存结构，`scripts/` 存逻辑，一一对应。
-- 金币加分走 `GameManager.add_score()` → `score_changed` 信号 → HUD 自己刷新，**别直接抓 HUD 节点**。
-- 加音效不用写代码：文件丢进 `assets/audio/sfx/`，名字对上 `AudioManager.play_sfx("coin")` 就会响；没文件静默，不报错。
-- 中文字体现在是系统字体，**WebGL 导出会变方块**，修法见 [`docs/05_导出与提交清单.md`](docs/05_导出与提交清单.md) 第三节。
-- 渲染保持 **GL Compatibility**，切到 Forward+ 网页端直接挂。
-
----
-
-## 七、每天的节奏
-
-| 时间 | 做什么 |
-|---|---|
-| 早上开工 | `git pull --rebase`，把别人的改动吃掉，跑一遍 F5 确认没坏 |
-| 干活中 | 完成一小块就 commit，别攒到晚上 |
-| 收工前 | `git push`；程序负责出一次 Web 包自己玩一遍 |
-| 出事时 | 群里发一句「我改了 XXX，可能冲突」，比事后回滚便宜得多 |
-
-**每天必须 push。** 谁电脑挂了，全队不能跟着归零。
-
----
-
-## 八、出问题了
-
-| 现象 | 原因 | 解法 |
-|---|---|---|
-| 场景里贴图变红 / 丢失 | 素材没提交，或 `.import` 被误忽略 | 确认 `*.png` 和同名 `.import` 都在仓库里 |
-| 一堆 "UID changed" 警告 | `.gd.uid` 文件丢失 | 别忽略 `*.gd.uid`，`git status` 看有没有被删 |
-| 我的关卡被别人覆盖了 | 两个人同时开编辑器改同一个 `.tscn` | 只能重做；以后改前先 pull、改完立刻推 |
-| Web 版中文全是方块 | 用了系统字体 | 按 docs/05 换成品字体 |
-| `.godot/` 下面冒出一堆改动 | 缓存不该进库 | `git rm -r --cached .godot`，确认 `.gitignore` 生效 |
-| pull 完 Godot 里看不到新文件 | 编辑器没刷新 | 切回 Godot 窗口会自动重扫；还不行就 **项目 → 重新加载当前项目** |
-
----
-
-## 九、这些**暂时不要**做
-
-存档、设置菜单（音量 / 分辨率）、手柄支持、多语言、粒子特效、可交互 NPC。
-
-14 天只够做「一个机制 + 3~5 关 + 菜单 + 打磨」。多一个系统就烂尾。详见 [`docs/01_14天作战计划.md`](docs/01_14天作战计划.md)。
+- 玩家没有任何出杆提示（瞄准线、落点、扫掠范围都看不见），手感靠猜。
+- 没有 UI：血条、得分、关卡进度、胜负都没有。
+- 敌人只会直线追玩家，不会绕墙。
+- 没有边界墙，玩家能走出画面。
