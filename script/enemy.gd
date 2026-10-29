@@ -20,7 +20,6 @@ var current_health: float = 100.0
 @export var launch_damage: float = 20.0 # 被弹飞时立刻扣的血
 @export var corpse_damage_factor: float = 0.12 # 尸体砸人的伤害系数（也按法向相对速度算）
 @export var stop_speed: float = 150.0 # 速度低于这个就当球停住了，结束飞行状态（真实台球也会被滚动摩擦停下）
-@export var e:float = 0.7
 
 @export_group("射击")
 @export var can_shoot: bool = true # 这个敌人会不会开枪
