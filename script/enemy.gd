@@ -12,13 +12,14 @@ var current_health: float = 100.0
 @export var speed: float = 50.0
 @export var attack_id: int = -1
 @export var launch_count: int = 0
-@export var friction: float = 0.9 # 提高传递效率，连环撞更远
-@export var min_chain_speed: float = 500.0 # 连环撞击的保底起飞速度，低于这个值被撞的敌人就只是被推一下
+@export var min_chain_speed: float = 500.0 # 连环撞击的保底起飞速度（按正碰程度打折），低于这个值被撞的敌人就只是被推一下
 
-@export_group("伤害参数")
-@export var chain_damage_factor: float = 0.06 # 连环撞击伤害 = 撞击速度 × 这个系数（0.2 时 1200 速=240 伤害，必秒杀）
-@export var launch_damage: float = 20.0 # 被弹飞时立刻扣的血（原来硬编码 50，配合 0.2 系数会秒杀）
-@export var chain_slowdown: float = 0.7 # 撞到敌人后自身保留的速度比例
+@export_group("碰撞物理")
+@export var restitution: float = 0.85 # 恢复系数 e：1=完全弹性（正碰两球交换速度），0=完全非弹性（撞完一起走）
+@export var chain_damage_factor: float = 0.06 # 撞击伤害 = 法向相对速度 × 这个系数（擦边几乎没伤害）
+@export var launch_damage: float = 20.0 # 被弹飞时立刻扣的血
+@export var corpse_damage_factor: float = 0.12 # 尸体砸人的伤害系数（也按法向相对速度算）
+@export var stop_speed: float = 150.0 # 速度低于这个就当球停住了，结束飞行状态（真实台球也会被滚动摩擦停下）
 
 @export_group("射击")
 @export var can_shoot: bool = true # 这个敌人会不会开枪
@@ -178,10 +179,12 @@ func _process_bullet(delta: float) -> void:
 		if target.attack_id == attack_id:
 			global_position = next_pos
 			return
+		# 法线一律取「两球球心连线」，这是真实碰撞法线；飞行方向只在正碰时才和它重合
+		var contact_normal: Vector2 = (target.global_position - global_position).normalized()
 		if target.current_state == State.DEAD:
-			_handle_corpse_hit(target, -travel_dir)
+			_handle_corpse_hit(target, contact_normal)
 		else:
-			_handle_enemy_hit(target, -travel_dir)
+			_handle_enemy_hit(target, contact_normal)
 		# 撞完人直接穿透过去，绝不卡在原地
 		global_position = next_pos
 	else:
@@ -197,7 +200,7 @@ func _process_bullet(delta: float) -> void:
 			global_position = next_pos
 	
 	# 速度太低了才停下
-	if velocity.length() < 20.0:
+	if velocity.length() < stop_speed:
 		_end_bullet_state()
 
 
@@ -228,39 +231,70 @@ func _find_overlapping_enemy(at_pos: Vector2, exclude_rids: Array[RID]) -> Node2
 	return best
 
 
+# 等质量两球的对心碰撞（沿法线交换冲量，切向速度完全不变）
+# v1/v2：两球速度；n：从 1 指向 2 的单位法线；e：恢复系数
+# 返回 [v1', v2', 法向相对速度]。法向相对速度 <= 0 说明两球正在分开，不产生冲量。
+static func sphere_collision(v1: Vector2, v2: Vector2, n: Vector2, e: float) -> Array:
+	var approach: float = (v1 - v2).dot(n)
+	if approach <= 0.0:
+		return [v1, v2, 0.0]
+	var j: float = (1.0 + e) * 0.5 * approach
+	return [v1 - n * j, v2 + n * j, approach]
+
+
 func _handle_enemy_hit(target_enemy: Node2D, normal: Vector2) -> void:
 	if target_enemy.attack_id == self.attack_id and target_enemy.launch_count > 0:
 		return
-		
-	var impact_damage = velocity.length() * chain_damage_factor
-	print("💥 连环碰撞！", self.name, " 撞了 ", target_enemy.name, "，伤害: ", int(impact_damage))
-	
-	# 用当前子弹的方向把速度传给它；保底速度保证"被撞开"而不是"被推开"
-	var chain_dir = velocity.normalized()
-	var chain_speed = maxf(velocity.length() * friction, min_chain_speed) 
-	
-	# 把巨大的速度传给敌人，让它飞起来
-	target_enemy.apply_launch(chain_dir, chain_speed, self.attack_id)
-	
-	# 然后再扣血
-	target_enemy.take_damage(impact_damage)
-	
-	# 撞击者自身减速，但仍然保持原本的方向高速穿梭，去撞下一个
-	velocity *= chain_slowdown 
+
+	# 【真实物理】正碰和斜碰的差别全在法线上：
+	#   法线 = 两球球心连线。正碰时法线和飞行方向重合 → 速度几乎全传过去、自己停下；
+	#   斜碰时法线是斜的 → 只有法向分量传过去，切向分量留在自己身上，自己顺着切线滑走。
+	var v1: Vector2 = velocity
+	var v2: Vector2 = target_enemy.velocity
+	var res: Array = sphere_collision(v1, v2, normal, restitution)
+	var approach: float = res[2]
+	if approach <= 0.0:
+		return # 本来就在互相远离，没有冲量
+	var v1_new: Vector2 = res[0]
+	var v2_new: Vector2 = res[1]
+
+	# 正碰程度 = 法向相对速度 / 自身速度，0=完全擦边，1=正面撞
+	var head_on: float = clampf(approach / maxf(v1.length(), 1.0), 0.0, 1.0)
+	# 伤害只看「怼上去」的那部分速度：擦边几乎不掉血
+	var impact_damage: float = approach * chain_damage_factor
+
+	# 保底起飞速度也按正碰程度打折，否则擦一下也会被弹飞，斜碰就没区别了
+	var floor_speed: float = min_chain_speed * head_on
+	if v2_new.length() < floor_speed:
+		var dir2: Vector2 = normal if v2_new.length() < 1.0 else v2_new.normalized()
+		v2_new = dir2 * floor_speed
+
+	print("💥 ", self.name, " 撞 ", target_enemy.name, "｜正碰度 ", int(head_on * 100.0), "%｜伤害 ", int(impact_damage), "｜传给对方 ", int(v2_new.length()))
+
+	target_enemy.apply_launch_velocity(v2_new, self.attack_id, impact_damage)
+
+	# 自己保留剩余速度：正碰会几乎停住（变成接力），斜碰会顺着切线滑过去
+	velocity = v1_new
+	if velocity.length() < stop_speed:
+		_end_bullet_state()
 
 
 func _handle_corpse_hit(corpse: Node2D, normal: Vector2) -> void:
-	print("🪨 子弹撞到了 ", corpse.name, " 的尸体！")
-	corpse.velocity = velocity * 0.8
-	velocity = velocity.bounce(normal) * 0.5
+	# 尸体也是等质量的球，只是不会「起飞」：照样按冲量交换速度
+	var res: Array = sphere_collision(velocity, corpse.velocity, normal, restitution)
+	if res[2] <= 0.0:
+		return
+	corpse.velocity = res[1]
+	velocity = res[0]
+	print("🪨 ", self.name, " 撞上 ", corpse.name, " 的尸体，尸体被推着滑走")
 
 
 func _handle_wall_hit(normal: Vector2) -> void:
 	var wall_damage = velocity.length() * 0.2
 	print("🧱 撞墙！", self.name, " 受到伤害: ", int(wall_damage))
 	take_damage(wall_damage)
-	# 撞墙才反弹
-	velocity = velocity.bounce(normal) * friction
+	# 撞墙反弹：法向速度反向、按恢复系数损失能量
+	velocity = velocity.bounce(normal) * restitution
 
 
 func _end_bullet_state() -> void:
@@ -292,11 +326,21 @@ func _process_dead(delta: float) -> void:
 			enemy_node = enemy_node.get_parent()
 			
 		if enemy_node.has_method("take_damage") and enemy_node != self and enemy_node.current_state != State.DEAD:
-			var impact_damage = velocity.length() * 0.15
-			if impact_damage > 10.0:
-				print("💀 尸体砸中！", self.name, " 砸了 ", enemy_node.name, " 伤害: ", int(impact_damage))
-				enemy_node.take_damage(impact_damage)
-				velocity *= 0.5
+			# 尸体砸人同样是球撞球：只算怼上去的那部分速度，擦过去不算
+			var n: Vector2 = enemy_node.global_position - global_position
+			if n.length() < 0.001:
+				n = velocity.normalized()
+			n = n.normalized()
+			var approach: float = (velocity - enemy_node.velocity).dot(n)
+			if approach <= 0.0:
+				continue
+			var corpse_damage: float = approach * corpse_damage_factor
+			if corpse_damage > 10.0:
+				print("💀 尸体砸中！", self.name, " 砸了 ", enemy_node.name, " 伤害 ", int(corpse_damage))
+				enemy_node.take_damage(corpse_damage)
+				var res: Array = sphere_collision(velocity, enemy_node.velocity, n, restitution)
+				velocity = res[0]
+				enemy_node.apply_path_stun(n)
 
 
 func _vanishing_corpse() -> void:
@@ -361,21 +405,29 @@ func apply_path_stun(direction: Vector2) -> void:
 		modulate = original_color
 
 
-func apply_launch(direction: Vector2, p_speed: float, p_attack_id: int) -> void:
+# 直接给定撞完之后应该有的速度向量（真实碰撞算出来的结果）。
+# 和 apply_launch 的区别：速度不是猜的，是法向冲量算出来的。
+func apply_launch_velocity(p_velocity: Vector2, p_attack_id: int, p_impact_damage: float = 0.0) -> void:
 	if current_state == State.DEAD: return
 	if attack_id == p_attack_id and launch_count > 0: return
-		
+
 	current_state = State.BULLET
 	attack_id = p_attack_id
 	launch_count += 1
-	velocity = direction * p_speed
-	modulate = Color(1, 0.4, 0) 
-	
+	velocity = p_velocity
+	modulate = Color(1, 0.4, 0)
+
 	if launch_count == 1:
-		take_damage(launch_damage) 
-	
-	print("🚀 ", name, " 被弹飞！初速度: ", int(p_speed), " 攻击ID: ", attack_id)
-	
+		take_damage(launch_damage)
+	if p_impact_damage > 0.0:
+		take_damage(p_impact_damage)
+
+	print("🚀 ", name, " 起飞：速度 ", int(velocity.length()), "  方向 ", velocity.normalized())
+
 	await get_tree().create_timer(2.0).timeout
 	if current_state == State.BULLET and not is_dying:
 		_end_bullet_state()
+
+
+func apply_launch(direction: Vector2, p_speed: float, p_attack_id: int) -> void:
+	await apply_launch_velocity(direction.normalized() * p_speed, p_attack_id)
