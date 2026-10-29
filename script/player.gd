@@ -122,9 +122,11 @@ func _update_aim_preview() -> void:
 	# 已经贴上了：箭头穿过去、射到敌人外侧，这样才看得出「它会朝哪飞」。
 	if locked:
 		aim_arrow.aim_length = clampf(dist + 120.0, 160.0, 420.0)
+		aim_arrow.visible = true
 	else:
 		aim_arrow.aim_length = clampf(dist - 55.0, 80.0, 220.0)
-	aim_arrow.visible = true
+		aim_arrow.visible = false
+	#waim_arrow.visible = true
 
 
 func _ensure_aim_arrow() -> void:
@@ -181,6 +183,10 @@ func _materialize_impact() -> void:
 		enemy.apply_launch_velocity(dir * overlap_launch_speed, current_attack_id, overlap_impact_damage)
 		print("💥 实体化冲击: ", enemy.name, " 弹飞速度 ", int(overlap_launch_speed), " 方向 ", dir)
 
+	# 卡肉（顿帧）：命中瞬间把游戏时间几乎掐停，让这一下「砰」有重量。
+	# 0.09 秒真实时间、时间流速 0.03 —— 短到不影响操作，但手感明显。
+	GameManager.hit_stop(0.09, 0.03)
+
 
 # 用自己碰撞体那个圆做一次重叠查询，找出真正和玩家重合的敌人
 func _find_overlapping_enemies() -> Array:
@@ -229,6 +235,7 @@ func take_hit(from_pos: Vector2) -> void:
 	if current_state != State.REAL:
 		return
 	print("💢 玩家被击中，强制打回幽灵状态")
+	GameManager.hit_stop(0.10, 0.05) # 挨打也卡一下，才知道自己中弹了
 	_enter_ghost_state()
 	can_switch = false
 	cooldown_timer = hit_lockout
