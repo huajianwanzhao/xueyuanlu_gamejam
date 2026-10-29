@@ -1,0 +1,34 @@
+[gd_scene format=3 uid="uid://daw61onyah6o1"]
+
+[ext_resource type="PackedScene" uid="uid://l223k0nuf2s5" path="res://scenes/player.tscn" id="1_4wyf3"]
+[ext_resource type="PackedScene" uid="uid://rsqu2k7yybp5" path="res://scenes/wall.tscn" id="2_k0juu"]
+[ext_resource type="PackedScene" uid="uid://cs8ernr6qvfbe" path="res://scenes/enemy.tscn" id="3_71j4m"]
+
+[node name="world" type="Node2D" unique_id=925776849]
+
+[node name="player" parent="." unique_id=350405252 instance=ExtResource("1_4wyf3")]
+position = Vector2(279, 120)
+
+[node name="StaticBody2D" parent="." unique_id=1224677045 instance=ExtResource("2_k0juu")]
+position = Vector2(1254, 163)
+rotation = 1.5871437
+scale = Vector2(5.9656715, -1.4849094)
+
+[node name="enemy" parent="." unique_id=883022662 instance=ExtResource("3_71j4m")]
+position = Vector2(937, 175)
+
+[node name="enemy3" parent="." unique_id=93605528 instance=ExtResource("3_71j4m")]
+position = Vector2(1016, 555)
+
+[node name="enemy4" parent="." unique_id=908831382 instance=ExtResource("3_71j4m")]
+position = Vector2(616, 608)
+
+[node name="enemy5" parent="." unique_id=686187504 instance=ExtResource("3_71j4m")]
+position = Vector2(176, 675)
+
+[node name="enemy2" parent="." unique_id=795705983 instance=ExtResource("3_71j4m")]
+position = Vector2(401, 355)
+
+[node name="wall" parent="." unique_id=139897504 instance=ExtResource("2_k0juu")]
+position = Vector2(649, -7)
+scale = Vector2(-23.125505, -0.48361847)
