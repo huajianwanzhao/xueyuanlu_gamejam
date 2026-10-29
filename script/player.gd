@@ -186,6 +186,8 @@ func _materialize_impact() -> void:
 	# 卡肉（顿帧）：命中瞬间把游戏时间几乎掐停，让这一下「砰」有重量。
 	# 0.09 秒真实时间、时间流速 0.03 —— 短到不影响操作，但手感明显。
 	GameManager.hit_stop(0.09, 0.03)
+	# 屏幕震动：camera_2d.gd 收到这个信号就按 intensity 抖一下（20 ≈ 满级）
+	GameManager.request_screen_shake.emit(22.0, 0.35)
 
 
 # 用自己碰撞体那个圆做一次重叠查询，找出真正和玩家重合的敌人
@@ -236,6 +238,7 @@ func take_hit(from_pos: Vector2) -> void:
 		return
 	print("💢 玩家被击中，强制打回幽灵状态")
 	GameManager.hit_stop(0.10, 0.05) # 挨打也卡一下，才知道自己中弹了
+	GameManager.request_screen_shake.emit(14.0, 0.30)
 	_enter_ghost_state()
 	can_switch = false
 	cooldown_timer = hit_lockout

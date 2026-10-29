@@ -276,6 +276,8 @@ func _handle_enemy_hit(target_enemy: Node2D, normal: Vector2) -> void:
 
 	# 卡肉：撞得越正、顿得越狠（擦边几乎不卡），连撞时才有一路「砰砰砰」的节奏
 	GameManager.hit_stop(lerpf(0.025, 0.06, head_on), 0.05)
+	# 屏幕震动同样按正碰程度给，擦边几乎不抖
+	GameManager.request_screen_shake.emit(lerpf(6.0, 18.0, head_on), 0.22)
 
 	# 自己保留剩余速度：正碰会几乎停住（变成接力），斜碰会顺着切线滑过去
 	velocity = v1_new
@@ -292,6 +294,7 @@ func _handle_corpse_hit(corpse: Node2D, normal: Vector2) -> void:
 	velocity = res[0]
 	print("🪨 ", self.name, " 撞上 ", corpse.name, " 的尸体，尸体被推着滑走")
 	GameManager.hit_stop(0.03, 0.06) # 撞尸体只轻轻卡一下
+	GameManager.request_screen_shake.emit(6.0, 0.15)
 
 
 func _handle_wall_hit(normal: Vector2) -> void:
@@ -393,6 +396,7 @@ func _dying_delay() -> void:
 func _die() -> void:
 	print("☠️ ", name, " 死亡！变为尸体")
 	GameManager.hit_stop(0.05, 0.05) # 打死人也要有一点停顿感
+	GameManager.request_screen_shake.emit(8.0, 0.20)
 	is_dying = false
 	current_state = State.DEAD
 	modulate = Color(0.3, 0.3, 0.3)
