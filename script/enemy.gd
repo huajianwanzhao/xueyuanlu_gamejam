@@ -1,7 +1,7 @@
 extends CharacterBody2D
 class_name Enemy
 
-enum State { NORMAL, STUNNED, BULLET, DEAD }
+enum State { NORMAL, STUNNED, BULLET, DEAD, AIMING }
 var current_state: State = State.NORMAL
 
 @export_group("属性参数")
@@ -20,6 +20,13 @@ var current_health: float = 100.0
 @export var launch_damage: float = 20.0 # 被弹飞时立刻扣的血（原来硬编码 50，配合 0.2 系数会秒杀）
 @export var chain_slowdown: float = 0.7 # 撞到敌人后自身保留的速度比例
 
+@export_group("射击")
+@export var can_shoot: bool = true # 这个敌人会不会开枪
+@export var shoot_range: float = 520.0 # 看到实体玩家 + 进入这个距离，就开始瞄准
+@export var aim_time: float = 1.0 # 瞄准（预警）时间：玩家有 1 秒时间跑开或切回幽灵
+@export var shoot_cooldown: float = 2.5 # 打一发之后要等多久才能再瞄
+@export var bullet_speed: float = 620.0
+
 @export_group("死亡延迟")
 @export var death_delay: float = 0.15 
 
@@ -27,6 +34,12 @@ var debug_label: Label
 var original_color: Color
 var is_vanishing: bool = false 
 var is_dying: bool = false 
+
+const BULLET_SCENE := preload("res://scenes/enemy_bullet.tscn")
+var aim_timer: float = 0.0
+var shoot_cooldown_timer: float = 0.0
+var aim_target: Node2D = null
+var aim_line: Line2D = null
 
 func _ready() -> void:
 	current_health = max_health
@@ -37,12 +50,19 @@ func _ready() -> void:
 	debug_label.add_theme_color_override("font_color", Color.RED)
 	add_child(debug_label)
 	_update_debug_label()
+	_create_aim_line()
 
 func _update_debug_label() -> void:
 	if debug_label:
 		debug_label.text = "HP: " + str(int(max(0, current_health)))
 
 func _physics_process(delta: float) -> void:
+	if shoot_cooldown_timer > 0.0:
+		shoot_cooldown_timer = maxf(0.0, shoot_cooldown_timer - delta)
+	# 只要不是瞄准状态，预警线一律收起来（被撞飞、被扫晕时自动生效）
+	if current_state != State.AIMING and aim_line and aim_line.visible:
+		aim_line.visible = false
+	
 	match current_state:
 		State.NORMAL:
 			_process_normal(delta)
@@ -53,6 +73,8 @@ func _physics_process(delta: float) -> void:
 			_process_bullet(delta)
 		State.DEAD:
 			_process_dead(delta)
+		State.AIMING:
+			_process_aiming(delta)
 
 
 func _process_normal(delta: float) -> void:
@@ -61,8 +83,78 @@ func _process_normal(delta: float) -> void:
 		var dir = (player.global_position - global_position).normalized()
 		velocity = dir * speed
 		move_and_slide()
+		# 看到实体玩家 → 停下来瞄准
+		if _can_start_aim(player):
+			_start_aiming(player)
 	else:
 		velocity = Vector2.ZERO
+
+
+# ================= 射击：瞄准 → 开火 ===================
+func _can_start_aim(player: Node) -> bool:
+	if not can_shoot: return false
+	if shoot_cooldown_timer > 0.0: return false
+	return global_position.distance_to(player.global_position) <= shoot_range
+
+func _create_aim_line() -> void:
+	aim_line = Line2D.new()
+	aim_line.width = 2.0
+	aim_line.default_color = Color(1.0, 0.15, 0.15, 0.2)
+	aim_line.z_index = 6
+	aim_line.visible = false
+	add_child(aim_line)
+
+func _start_aiming(player: Node2D) -> void:
+	current_state = State.AIMING
+	aim_target = player
+	aim_timer = aim_time
+	velocity = Vector2.ZERO
+	if aim_line:
+		aim_line.visible = true
+	print("🎯 ", name, " 开始瞄准")
+
+func _process_aiming(delta: float) -> void:
+	velocity = Vector2.ZERO
+	move_and_slide()
+	if aim_target == null or not is_instance_valid(aim_target):
+		_stop_aiming(0.0)
+		return
+	# 玩家切回幽灵、或者跑出射程 → 放弃瞄准（这就是 1 秒预警的意义）
+	if aim_target.current_state != aim_target.State.REAL or global_position.distance_to(aim_target.global_position) > shoot_range * 1.15:
+		_stop_aiming(0.4)
+		return
+	aim_timer -= delta
+	var progress: float = clampf(1.0 - aim_timer / maxf(aim_time, 0.01), 0.0, 1.0)
+	_update_aim_line(progress)
+	if aim_timer <= 0.0:
+		_fire()
+
+func _update_aim_line(progress: float) -> void:
+	if aim_line == null: return
+	aim_line.points = PackedVector2Array([Vector2.ZERO, to_local(aim_target.global_position)])
+	aim_line.width = 2.0 + 3.0 * progress
+	aim_line.default_color = Color(1.0, 0.2, 0.15, 0.15 + 0.75 * progress)
+
+func _fire() -> void:
+	var dir: Vector2 = (aim_target.global_position - global_position).normalized()
+	var bullet = BULLET_SCENE.instantiate()
+	var host: Node = get_tree().current_scene
+	if host == null: host = get_parent()
+	host.add_child(bullet)
+	bullet.global_position = global_position + dir * 95.0
+	bullet.setup(dir, bullet_speed, self)
+	shoot_cooldown_timer = shoot_cooldown
+	print("🔫 ", name, " 开火！")
+	_stop_aiming(0.0)
+
+func _stop_aiming(extra_cooldown: float) -> void:
+	if aim_line:
+		aim_line.visible = false
+	aim_target = null
+	if current_state == State.AIMING:
+		current_state = State.NORMAL
+	if extra_cooldown > 0.0:
+		shoot_cooldown_timer = maxf(shoot_cooldown_timer, extra_cooldown)
 
 
 # ================= 子弹移动与连环穿透碰撞 =================

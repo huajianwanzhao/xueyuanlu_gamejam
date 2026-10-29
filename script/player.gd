@@ -14,6 +14,8 @@ var current_state: State = State.GHOST
 @export var sweep_radius: float = 40.0 
 @export var launch_base_speed: float = 1200.0 
 
+@export_group("受击")
+@export var hit_lockout: float = 1.5 # 被敌人子弹打中后，多久不能再出杆
 var can_switch: bool = true
 var cooldown_timer: float = 0.0
 var current_attack_id: int = 0 
@@ -52,7 +54,8 @@ func _try_switch_state() -> void:
 
 func _enter_ghost_state() -> void:
 	current_state = State.GHOST
-	collision_shape.disabled = true 
+	# 用 set_deferred：切状态可能发生在物理回调里（比如被子弹打中）
+	collision_shape.set_deferred("disabled", true)
 	velocity = Vector2.ZERO
 	modulate = Color(1, 1, 1, 0.5) 
 
@@ -64,9 +67,10 @@ func _enter_real_state(new_pos: Vector2) -> void:
 	cooldown_timer = switch_cooldown
 	modulate = Color(1, 1, 1, 1)
 	
-	collision_shape.disabled = true
+	collision_shape.set_deferred("disabled", true)
 	await get_tree().create_timer(0.15).timeout
-	collision_shape.disabled = false
+	if current_state == State.REAL:
+		collision_shape.set_deferred("disabled", false)
 
 
 # ================= 核心：纯数学暴力寻敌 =================
@@ -129,6 +133,23 @@ func _execute_teleport_impact() -> void:
 		print("🔥 终点弹射命中: ", primary_target.name)
 		
 	_enter_real_state(to_pos)
+
+
+
+
+# ================= 挨打 ===================
+# 敌人子弹命中：实体状态才会被打中（幽灵状态没有碰撞体，免疫）
+func take_hit(from_pos: Vector2) -> void:
+	if current_state != State.REAL:
+		return
+	print("💢 玩家被击中，强制打回幽灵状态")
+	_enter_ghost_state()
+	can_switch = false
+	cooldown_timer = hit_lockout
+	modulate = Color(1.0, 0.35, 0.35, 0.85)
+	await get_tree().create_timer(0.25).timeout
+	if current_state == State.GHOST:
+		modulate = Color(1, 1, 1, 0.5)
 
 
 # 辅助数学函数：计算点到线段的距离
