@@ -1,6 +1,10 @@
 extends Camera2D
 
 # ================= 震动参数 =================
+@export_group("运动偏移设置")
+@export var target := CharacterBody2D
+@export var look_ahead_scale : float = 0.1
+@export var follow_speed :float = 5.0
 @export_group("震动设置")
 @export var max_offset: Vector2 = Vector2(15.0, 15.0) # 最大水平/垂直偏移
 @export var max_roll: float = 0.05 # 最大旋转角度（弧度）
@@ -19,6 +23,11 @@ func _ready() -> void:
 	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
 
 func _process(delta: float) -> void:
+	if target :
+		var look_ahead_offset = -target.velocity*look_ahead_scale
+		var desire_position = target.global_position+look_ahead_offset
+		global_position = global_position.lerp(desire_position,exp(-follow_speed))
+		
 	if trauma > 0.0:
 		# 创伤值随时间衰减
 		trauma = max(trauma - decay_speed * delta, 0.0)

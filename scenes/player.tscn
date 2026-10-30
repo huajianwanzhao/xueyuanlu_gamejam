@@ -3,6 +3,7 @@
 [ext_resource type="Texture2D" uid="uid://oya8wpn6jmc8" path="res://icon.svg" id="1_4flbx"]
 [ext_resource type="Script" uid="uid://lc0hhllikc4g" path="res://script/player.gd" id="1_onrkg"]
 [ext_resource type="Script" uid="uid://che3k52tfrf7c" path="res://scenes/camera_2d.gd" id="3_6t5aa"]
+[ext_resource type="Script" uid="uid://ourtdo3cdldy" path="res://script/robot_visual.gd" id="4_vis"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_e5qy5"]
 radius = 85.052925
@@ -16,9 +17,15 @@ switch_cooldown = 5.0
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=216006608]
 shape = SubResource("CircleShape2D_e5qy5")
 
+[node name="Visual" type="Node2D" parent="." unique_id=1312145439]
+script = ExtResource("4_vis")
+body_color = Color(0.28, 0.8, 0.78, 1)
+
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=344107802]
+visible = false
 texture = ExtResource("1_4flbx")
 
-[node name="Camera2D" type="Camera2D" parent="." unique_id=804140987]
+[node name="Camera2D" type="Camera2D" parent="." unique_id=804140987 node_paths=PackedStringArray("target")]
 zoom = Vector2(0.5, 0.5)
 script = ExtResource("3_6t5aa")
+target = NodePath("..")

@@ -43,9 +43,11 @@ var aim_target: Node2D = null
 var aim_line: Line2D = null
 
 var player:Node
+var visual: RobotVisual = null
 
 func _ready() -> void:
 	player = get_tree().get_first_node_in_group("Player")
+	visual = get_node_or_null("Visual")
 	current_health = max_health
 	original_color = modulate
 	
@@ -165,6 +167,9 @@ func _process_bullet(delta: float) -> void:
 	var motion = velocity * delta
 	var next_pos = global_position + motion
 	var travel_dir := velocity.normalized()
+	# 被打飞 = 圆盘腾空：视觉抬起来、影子留在地上（物理仍在平面里，不改一行）
+	if visual:
+		visual.set_lift(clampf(velocity.length() / 35.0, 0.0, 40.0))
 	var space_state = get_world_2d().direct_space_state
 	var exclude_rids: Array[RID] = [get_rid()]
 	# 玩家不挡飞行中的敌人：出杆瞬间子弹就贴着玩家，不排除会卡在玩家身体里原地不动
@@ -312,11 +317,15 @@ func _end_bullet_state() -> void:
 	current_state = State.NORMAL
 	velocity = Vector2.ZERO
 	modulate = original_color
+	if visual:
+		visual.set_lift(0.0)
 
 
 # ================= 尸体的物理滑行与消失 =================
 func _process_dead(delta: float) -> void:
 	if is_vanishing: return
+	if visual and visual.lift > 0.0:
+		visual.set_lift(0.0)
 
 	velocity = velocity.move_toward(Vector2.ZERO, 800 * delta)
 	move_and_slide()

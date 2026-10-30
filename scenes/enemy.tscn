@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://f2dgqlxigggm" path="res://script/enemy.gd" id="1_1f0kj"]
 [ext_resource type="Texture2D" uid="uid://oya8wpn6jmc8" path="res://icon.svg" id="2_afpow"]
+[ext_resource type="Script" path="res://script/robot_visual.gd" id="3_vis"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_e5qy5"]
 radius = 84.095184
@@ -14,5 +15,12 @@ min_chain_speed = 1000.0
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1506269258]
 shape = SubResource("CircleShape2D_e5qy5")
 
+[node name="Visual" type="Node2D" parent="."]
+script = ExtResource("3_vis")
+radius = 84.0
+body_color = Color(0.92, 0.36, 0.3, 1)
+accent_color = Color(1, 0.86, 0.7, 1)
+
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1529758313]
+visible = false
 texture = ExtResource("2_afpow")

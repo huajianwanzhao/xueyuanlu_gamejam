@@ -1,0 +1,83 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="PackedScene" uid="uid://l223k0nuf2s5" path="res://scenes/player.tscn" id="1_pl"]
+[ext_resource type="PackedScene" uid="uid://cs8ernr6qvfbe" path="res://scenes/enemy.tscn" id="2_en"]
+[ext_resource type="PackedScene" path="res://scenes/furniture.tscn" id="3_fur"]
+[ext_resource type="Script" path="res://script/floor_grid.gd" id="4_floor"]
+
+[node name="world" type="Node2D"]
+y_sort_enabled = true
+
+[node name="Floor" type="Node2D" parent="."]
+z_index = -100
+position = Vector2(300, 200)
+script = ExtResource("4_floor")
+rect_size = Vector2(4200, 3000)
+
+[node name="wall_top" parent="." instance=ExtResource("3_fur")]
+position = Vector2(100, -400)
+width = 1900.0
+depth = 120.0
+height = 110.0
+top_color = Color(0.32, 0.34, 0.42, 1)
+side_color = Color(0.2, 0.21, 0.27, 1)
+
+[node name="wall_bottom" parent="." instance=ExtResource("3_fur")]
+position = Vector2(100, 900)
+width = 1900.0
+depth = 120.0
+height = 110.0
+top_color = Color(0.32, 0.34, 0.42, 1)
+side_color = Color(0.2, 0.21, 0.27, 1)
+
+[node name="wall_left" parent="." instance=ExtResource("3_fur")]
+position = Vector2(-800, 900)
+width = 120.0
+depth = 1300.0
+height = 110.0
+top_color = Color(0.32, 0.34, 0.42, 1)
+side_color = Color(0.2, 0.21, 0.27, 1)
+
+[node name="wall_right" parent="." instance=ExtResource("3_fur")]
+position = Vector2(1000, 900)
+width = 120.0
+depth = 1300.0
+height = 110.0
+top_color = Color(0.32, 0.34, 0.42, 1)
+side_color = Color(0.2, 0.21, 0.27, 1)
+
+[node name="bed" parent="." instance=ExtResource("3_fur")]
+position = Vector2(-350, 150)
+width = 520.0
+depth = 320.0
+height = 80.0
+top_color = Color(0.62, 0.68, 0.8, 1)
+side_color = Color(0.38, 0.42, 0.52, 1)
+
+[node name="wardrobe" parent="." instance=ExtResource("3_fur")]
+position = Vector2(500, -250)
+width = 260.0
+depth = 170.0
+height = 240.0
+top_color = Color(0.52, 0.38, 0.28, 1)
+side_color = Color(0.33, 0.23, 0.17, 1)
+
+[node name="table" parent="." instance=ExtResource("3_fur")]
+position = Vector2(150, 430)
+width = 420.0
+depth = 220.0
+height = 90.0
+top_color = Color(0.55, 0.42, 0.3, 1)
+side_color = Color(0.35, 0.26, 0.19, 1)
+
+[node name="player" parent="." instance=ExtResource("1_pl")]
+position = Vector2(-380, 320)
+
+[node name="enemy" parent="." instance=ExtResource("2_en")]
+position = Vector2(-380, 40)
+
+[node name="enemy2" parent="." instance=ExtResource("2_en")]
+position = Vector2(650, 260)
+
+[node name="enemy3" parent="." instance=ExtResource("2_en")]
+position = Vector2(520, -340)
