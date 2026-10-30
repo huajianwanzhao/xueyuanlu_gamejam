@@ -5,9 +5,9 @@
 
 ## 在线试玩（网页，随时最新）
 
-https://huajianwanzhao.github.io/xueyuanlu_gamejam/
+https://jinsaoqu.cc.cd/
 
-每次 push 到 main，GitHub Actions 大约 2 分钟重新导出网页版并部署，刷新页面即最新构建。
+
 
 **首次打开要下约 10MB 的引擎本体**（wasm 原始 39.5MB，Pages 用 gzip 压到 10.2MB），所以要等十几秒；
 之后走 Service Worker 缓存，刷新基本秒开。卡在 Godot 启动图超过半分钟，就 Ctrl+F5 强刷一次。
